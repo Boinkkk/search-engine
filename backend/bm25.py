@@ -13,7 +13,6 @@ def bm25_score(tf, idf, doc_len, avgdl, k1=1.5, b=0.75):
     return idf * ((tf * (k1 + 1)) /
            (tf + k1 * (1 - b + b * (doc_len / avgdl))))
     
-from collections import defaultdict
 
 def calculate_scores(rows, avgdl):
     scores = defaultdict(float)

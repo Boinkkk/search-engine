@@ -9,18 +9,15 @@ MONTHS_ID = {
     9: "september", 10: "oktober", 11: "november", 12: "desember",
 }
 
-# ── 1. Tanggal: simpan bulan + tahun, buang hari (tidak informatif untuk BM25)
 def normalize_date_in_text(text):
     def replace_date(match):
         day, month, year = map(int, match.groups())
         month_str = MONTHS_ID.get(month, str(month))
-        # Hari dibuang, tahun dipertahankan sebagai token bermakna
         return f"{month_str} {year}"
 
     return re.sub(r"\b(\d{1,2})/(\d{1,2})/(\d{4})\b", replace_date, str(text))
 
 
-# ── 2. Bucket angka besar agar tidak jadi token unik tak bermakna
 def bucket_number(value_str):
     """
     Mengubah angka menjadi representasi bucket yang informatif.
@@ -44,10 +41,8 @@ def bucket_number(value_str):
     elif n >= 1_000:
         return "ribuan"
     else:
-        return str(int(n))  # angka kecil tetap literal
+        return str(int(n)) 
 
-
-# ── 3. Persentase: bucket agar "5 persen" dan "6 persen" tidak jadi token berbeda
 def bucket_percent(value_str):
     try:
         n = float(value_str)
@@ -69,7 +64,6 @@ def bucket_percent(value_str):
 def normalize_symbols(text):
     text = str(text)
 
-    # Mata uang → bucket + unit word
     text = re.sub(
         r"\bUS\$\s?([\d.,]+)",
         lambda m: f"{bucket_number(m.group(1))} dollar",
@@ -86,21 +80,17 @@ def normalize_symbols(text):
         text, flags=re.IGNORECASE
     )
 
-    # Persentase → bucket + "persen"
     text = re.sub(
         r"(\d+(?:[.,]\d+)?)\s*%",
         lambda m: f"persen {bucket_percent(m.group(1))}",
         text
     )
-
-    # Satuan: angka dibuang, unit dipertahankan sebagai sinyal fitur
     text = re.sub(r"(\d+)\s*deg", "derajat", text, flags=re.IGNORECASE)
     text = re.sub(r"(\d+)\s?km\b", "kilometer", text, flags=re.IGNORECASE)
     text = re.sub(r"(\d+)\s?kg\b", "kilogram", text, flags=re.IGNORECASE)
     text = re.sub(r"(\d+)\s?m\b", "meter", text, flags=re.IGNORECASE)
     text = re.sub(r"(\d+)\s?h\b", "jam", text, flags=re.IGNORECASE)
-
-    # Multiplier (1k, 2m) → bucket
+    
     text = re.sub(
         r"\b(\d+)k\b",
         lambda m: bucket_number(str(int(m.group(1)) * 1_000)),
@@ -114,8 +104,6 @@ def normalize_symbols(text):
 
     return text
 
-
-# ── 4. Hapus angka sisa KECUALI tahun (4 digit 1900–2099)
 def remove_non_year_numbers(text):
     """
     Pertahankan tahun (1900–2099) sebagai token bermakna untuk BM25.
